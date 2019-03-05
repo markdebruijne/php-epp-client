@@ -5,3 +5,8 @@ vendor/*
 .pem
 Tests/testsetup*
 .DS_Store
+
+# Darestep specific
+output/
+settings.ini
+settings_*.ini
