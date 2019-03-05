@@ -79,4 +79,16 @@ class eppDnssecInfoDomainResponse extends eppInfoDomainResponse
         }
         return null;
     }
+
+	public function hasDnsSec() {
+		// Check if dnssec is enabled on this interface
+        if ($this->findNamespace('secDNS')) {
+            $xpath = $this->xPath();
+            $result = $xpath->query('/epp:epp/epp:response/epp:extension/secDNS:infData/*');
+
+			return $result->length > 0;
+		}
+
+		return false;
+	}
 }
