@@ -1008,6 +1008,13 @@ class eppConnection {
             if (($result['logging']=='true') || ($result['logging']=='yes') || ($result['logging']=='1')) {
                 $this->enableLogging();
             }
+
+			if (array_key_exists('logfile',$result) && !empty($result['logfile'])) {
+				// Also enable logging to file
+				$logfile = $result['logfile'];
+				$this->setLogFile($logfile);
+				$this->writeLog("Logging enabled to: " . $logfile,"enableLogging");
+			}
         }
 
         if (array_key_exists('certificatefile',$result) && array_key_exists('certificatepassword',$result)) {

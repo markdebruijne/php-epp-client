@@ -82,17 +82,28 @@ How to use this repository
 
 1. Check out the latest version from github. (Or `composer require metaregistrar/php-epp-client`)
 2. Use the `Examples/checkdomain.php` and create a connection to your favorite registry (for example `new Metaregistrar\EPP\metaregEppConnection()`).
-3. Create a `settings.ini` in with the following contents:
+3. Create a `settings.ini` in the root folder, and add the following contents:
 ```
-        interface=eppConnection
-        hostname=ssl://eppltest1.metaregistrar.com
-        port=7000
-        userid=xxxxxxxx
-        password=xxxxxxxxx
-        logging=true
-        certificatefile=/home/xxxxxx/xxxxxxx.pem
-        certificatepassword=xxxxxxx
+interface=metaregEppConnection
+hostname=ssl://eppltest1.metaregistrar.com
+port=7000
+userid=xxxxxxxx
+password=xxxxxxxxx
+logging=true
+logfile=eppclientlog.txt
+certificatefile=/home/xxxxxx/xxxxxxx.pem
+certificatepassword=xxxxxxx
 ```
+> Additional explanation of the settings you can configure in such a settings file:
+>> `interface` a supported registry, use the name of the respective folder within `/Registries`. Other example: `interface=sidnEppConnection` (SIDN)  
+>> `hostname`: use `ssl//` instead of `https://`.  
+>> `port` *(optional)*: the port to connect to (default: 700).   
+>> `userid`: your username for the EPP client.  
+>> `password`: your password for the EPP client.  
+>> `logging` *(optional)*: if `true`, console output is enabled (default: false).  
+>> `logfile` *(optional)*:  can be configured as log output file (default: no logfile).  
+>> `certificatefile` *(optional)* the certificate file to use (must be `.pem` format).  
+>> `certificatepassword` *(optional)* the password/passphrase of the `.pem` (optional if you specify a `certificatefile`).
 4. Now, `checkdomain.php` should be functioning and checking domains.
 
 **If** you do not want to use `settings.ini` files in the Registries directory, you can create a connection as follows: 
@@ -105,4 +116,6 @@ $conn->setHostname('ssl://eppltest1.metaregistrar.com'); // Hostname may vary de
 $conn->setPort(7000); // Port may vary depending on the registry selected
 $conn->setUsername('xxxxxxxx');
 $conn->setPassword('xxxxxxxxx');
+// optional
+$conn->setLogFile('logfile.txt');
 ```
