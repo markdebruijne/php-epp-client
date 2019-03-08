@@ -6,6 +6,7 @@ use Metaregistrar\EPP\eppConnection;
 use Metaregistrar\EPP\eppException;
 use Metaregistrar\EPP\eppDomain;
 use Metaregistrar\EPP\eppInfoDomainRequest;
+use Metaregistrar\EPP\eppSecdns;
 use Metaregistrar\EPP\eppContactHandle;
 use Metaregistrar\EPP\eppHost;
 
@@ -18,15 +19,17 @@ use Metaregistrar\EPP\eppHost;
  * Usage: infodomain.php <domainname> <authcode>
  */
 
-if ($argc <= 1 or $argc > 3) { // argc[0] is the script name
+if ($argc <= 1 or $argc > 4) { // argc[0] is the script name
     echo "Usage: infodomain.php <domainname> <authcode>\n";
     echo "Please enter as input:\n";
 	echo " Argument 1 (required): domain name.\n";
 	echo " Argument 2 (optional): authorization code/token.\n";
+	echo " Argument 3 (optional)  export.\n";
     die();
 }
 $domainname = $argv[1];
-$domainAuthCode = $argc == 3 ? $argv[2] : null;
+$domainAuthCode = $argc === 3 && $argv[2] !== "export"? $argv[2] : null;
+$exportDomainInfo = ($argc === 4 || ($argc === 3 && $argv[2] === "export"));
 
 echo "Retrieving info on " . $domainname . "\n";
 if(!empty($domainAuthCode)) {
@@ -40,6 +43,11 @@ try {
         if ($conn->login()) {
             $result = infodomain($conn, $domainname, $domainAuthCode);
             $conn->logout();
+		
+			if($exportDomainInfo) {
+				exportDomainInfoToCsv($result);
+			}
+
         }
     }
 } catch (eppException $e) {
@@ -76,10 +84,14 @@ function infodomain($conn, $domainname, $domainAuthCode) {
 		        /* @var $nameserver eppHost */
 		        echoAndWriteLogfile($domainname,  "  " . $nameserver->getHostname());
 		    }
+			echoAndWriteLogFile($domainname, "DNSSEC? " . ((bool)$response->hasDnsSec()));
+
+			return $response;
 		} else {
 		    echoAndWriteLogfile($domainname, "ERROR2");
 		}
 		return null;
+
 	} catch (eppException $e) {
 		echoAndWriteLogfile($domainname, $e->getMessage(), false);
 	}
