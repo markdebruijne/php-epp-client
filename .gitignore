@@ -9,6 +9,7 @@ Tests/testsetup*
 # Darestep specific
 dnssec/*
 !dnssec/_readme.txt
+!dnssec/completed/_readme.txt
 output/
 settings.ini
 settings_*.ini

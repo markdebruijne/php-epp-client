@@ -96,7 +96,7 @@ function getDnsSecFilename($domainname) {
 }
 
 function getDnsSecFolder() {
-	$dnsSecFolder = "../../dnssec/";
+	$dnsSecFolder = "/../dnssec/";
 
 	return $dnsSecFolder;
 }
