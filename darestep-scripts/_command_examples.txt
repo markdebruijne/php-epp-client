@@ -1,0 +1,2 @@
+php -d display_errors=on -f Examples\signdomain.php 123.nl
+php darestep-scripts\domain_dnssec.php energie-gadget.com
