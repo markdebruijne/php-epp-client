@@ -1,2 +1,23 @@
-php -d display_errors=on -f Examples\signdomain.php 123.nl
+Laatste versie op DS-WEB-SH1 > D:\EPP_Mark
+==========================================
+
+Minimaal script file + script specifieke arguments aan het eind
+----
 php darestep-scripts\domain_dnssec.php energie-gadget.com
+
+
+Maar errors zie je standaard niet, dus dit is aan te bevelen
+----
+php -d display_errors=on darestep-scripts\domain_dnssec.php 123.nl
+php -d display_errors=on darestep-scripts\domain_info.php oxxio.nl
+
+
+Sommige scripts ondersteunen meerdere arguments
+----
+php -d display_errors=on darestep-scripts\domain_available.php oxxi.nl oxxioo.nl
+
+
+Exporteren van domein naar /output folder in zowel totaal bestand als individueel
+----
+php -d display_errors=on darestep-scripts\domain_info.php oxxio.nl
+php -d display_errors=on darestep-scripts\domain_info.php oxxio.nl export
