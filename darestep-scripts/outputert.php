@@ -68,10 +68,13 @@ function exportDomainInfoToCsv($domainInfoResponse) {
 		}
 	}
 
-	//Fill up to fixed amount
-	$handlesAdmin	= array_pad($handlesAdmin	, 2, null);
-	$handlesTech	= array_pad($handlesTech	, 3, null);
-	$handlesBilling = array_pad($handlesBilling	, 1, null);
+	//Fill up to fixed amount, and cut of to that limit (in case more are applicable)
+	$handlesAdmin	= array_pad($handlesAdmin	 , 2, null);
+	$handlesAdmin	= array_slice($handlesAdmin	 , 0, 2);
+	$handlesTech	= array_pad($handlesTech	 , 3, null);
+	$handlesTech	= array_slice($handlesTech	 , 0, 3);
+	$handlesBilling = array_pad($handlesBilling	 , 1, null);
+	$handlesBilling = array_slice($handlesBilling, 0, 1);
 
 	array_push($columns, $handlesAdmin[0]);
 	array_push($columns, $handlesAdmin[1]);
@@ -97,6 +100,8 @@ function exportDomainInfoToCsv($domainInfoResponse) {
 		if($index === 3) { break; } // take only the first four
 	}
 	$nameservers = array_pad($nameservers	, 4, null);
+	$nameservers = array_slice($nameservers , 0, 4);
+
 	array_push($columns, $nameservers[0]);
 	array_push($columns, $nameservers[1]);
 	array_push($columns, $nameservers[2]);
@@ -116,7 +121,11 @@ function exportDomainInfoToCsv($domainInfoResponse) {
 	// print_r($columnHeaders);
 	// print_r($columns);
 
-	// $outputFile = "output\\" . $domainName . "_export.csv";
+	appendDomainInfoOverview($columnHeaders, $columns);
+	createDomainInfoDomainOnly($domainName, $columnHeaders, $columns);
+}
+
+function appendDomainInfoOverview($columnHeaders, $columnValues) {
 	$outputFile = "output\\__exports.csv";
 
 	$filepointer = fopen($outputFile, 'a+');
@@ -127,9 +136,28 @@ function exportDomainInfoToCsv($domainInfoResponse) {
 		fseek($filepointer, 0, SEEK_END);
 	}
 
-	fputcsv($filepointer, $columns, "|");
+	fputcsv($filepointer, $columnValues, "|");
 	
 	fclose($filepointer);
 
 	echo " --> " . $outputFile . PHP_EOL;
 }
+
+function createDomainInfoDomainOnly($domainName, $columnHeaders, $columnValues) {
+	$outputFile = "output\\" . $domainName . "_export_.csv";
+
+	$filepointer = fopen($outputFile, 'a+');
+
+	$headerLine = fgets($filepointer);
+	if(empty($headerLine)) {
+		fputcsv($filepointer, $columnHeaders, "|");
+		fseek($filepointer, 0, SEEK_END);
+	}
+
+	fputcsv($filepointer, $columnValues, "|");
+	
+	fclose($filepointer);
+
+	echo " --> " . $outputFile . PHP_EOL;
+}
+
