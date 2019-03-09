@@ -10,6 +10,7 @@ Tests/testsetup*
 dnssec/*
 !dnssec/_readme.txt
 !dnssec/completed/_readme.txt
+logfile*.txt
 output/
 settings.ini
 settings_*.ini
