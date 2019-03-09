@@ -21,7 +21,7 @@ $authcode = $argv[2];
 echo "Transferring $domainname\n";
 try {
     // Please enter your own settings file here under before using this example
-    if ($conn = eppConnection::create('', true)) {
+    if ($conn = eppConnection::create("settings.ini", true)) {
         // Connect and login to the EPP server
         if ($conn->login()) {
             transferdomain($conn, $domainname, $authcode);
