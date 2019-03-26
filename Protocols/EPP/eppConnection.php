@@ -838,6 +838,15 @@ class eppConnection {
         $this->logFile = $filename;
     }
 
+    public function getInterface() {
+        return $this->interface;    
+    }
+
+    public function setInterface($interfaceName) {
+        $this->interface = $interfaceName;
+    }
+    
+
     public function getPort() {
         return $this->port;
     }
@@ -988,6 +997,7 @@ class eppConnection {
      * @return bool
      */
     public function setConnectionDetails($result) {
+        $this->setInterface(str_replace('EppConnection', '', $result['interface']));
         $this->setHostname($result['hostname']);
         $this->setUsername($result['userid']);
         $this->setPassword($result['password']);
