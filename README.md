@@ -93,6 +93,9 @@ logging=true
 logfile=eppclientlog.txt
 certificatefile=/home/xxxxxx/xxxxxxx.pem
 certificatepassword=xxxxxxx
+verifypeer=true/false
+verifypeername=true/false
+allowselfsigned=true/false
 ```
 > Additional explanation of the settings you can configure in such a settings file:
 >> `interface` a supported registry, use the name of the respective folder within `/Registries`. Other example: `interface=sidnEppConnection` (SIDN)  
