@@ -1,11 +1,14 @@
 <?php
 require('autoloader.php');
 require_once('context_loader.php');
+require_once('outputert.php');
 
 use Metaregistrar\EPP\eppConnection;
 use Metaregistrar\EPP\eppException;
 use Metaregistrar\EPP\eppContactHandle;
 use Metaregistrar\EPP\eppCheckRequest;
+use Metaregistrar\EPP\eppCheckDomainRequest;
+use Metaregistrar\EPP\eppCheckDomainResponse;
 use Metaregistrar\EPP\eppContactPostalInfo;
 use Metaregistrar\EPP\eppContact;
 use Metaregistrar\EPP\eppCreateContactRequest;
@@ -41,20 +44,51 @@ try {
     if ($conn = eppConnection::create('settings.ini', true)) {
         
         // Determine which context_file to use: contains registrant, handles and name server
-		$contextDictionary = loadContext($conn, $domainname, $targetOrganization);
+        $contextDictionary = loadContext($conn, $domainname, $targetOrganization);
+        
+        echoAndWriteLogfile($domainname, "Received instructions to register: " . $domainname . " @ " . date('Y-m-d H:i:s'));
         
         // Connect to the EPP server
         if ($conn->login()) {
 
-			$nameservers = getContextNameServers($contextDictionary);
-            
-			createdomain($conn, $domainname, $contextDictionary["registrant"], $contextDictionary["admin1"], $contextDictionary["tech1"], $contextDictionary["billing1"], $nameservers);
+            // First check whether the domain name is (still/already) available
+            $isAvailable = isDomainAvailable($conn, $domainname);
+
+			if(!$isAvailable) {
+				echoAndWriteLogfile($domainname, "Registration aborted: not available (yet/anymore).");
+			} else {
+				// Register based on the handles and nameservers a loaded from the context file
+				$nameservers = getContextNameServers($contextDictionary);
+				createdomain($conn, $domainname, $contextDictionary["registrant"], $contextDictionary["admin1"], $contextDictionary["tech1"], $contextDictionary["billing1"], $nameservers);
+			}
             
             $conn->logout();
         }
     }
 } catch (eppException $e) {
     echo $e->getMessage();
+}
+
+function isDomainAvailable($conn, $domainname) {
+        // Create request to be sent to EPP service
+        $availabilityCheck = new eppCheckDomainRequest(array($domainname)); // seems to expects array as input :(
+        // Write request to EPP service, read and check the results
+        if ($availabilityResponse = $conn->request($availabilityCheck)) {
+
+            // Response is an array with the domainname that there checked, each record is a dictionary.
+            // - domainname
+            // - available
+            // - reason
+            $availableResult = $availabilityResponse->getCheckedDomains();
+
+            $isAvailable = $availableResult[0]["available"]; // we know we put in one, so we should have exact one result.
+            echoAndWriteLogfile($domainname, "is available: " .var_export($isAvailable, true)); // print bool as string
+            if($isAvailable === false && array_key_exists("reason", $availableResult)) {
+                echoAndWriteLogfile($domainname, " reason not available: ". $availableResult["reason"]);
+            }
+
+			return $isAvailable;
+        }
 }
 
 function checkcontact($conn, $contactid) {

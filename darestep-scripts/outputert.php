@@ -10,7 +10,9 @@ function echoAndWriteLogfile($domainname, $logText, $success = true) {
 	echo $logText.PHP_EOL;
 
 	$backtrace = debug_backtrace();
-	$calling_scriptfile = $backtrace[1]['file'];
+	//var_dump($backtrace);
+
+	$calling_scriptfile = end($backtrace)['file'];
 
 	$insertion = $success ? null : "_ERROR";
 
