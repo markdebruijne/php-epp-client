@@ -7,6 +7,15 @@ use Metaregistrar\EPP\eppSecdns;
 use Metaregistrar\EPP\eppContactHandle;
 use Metaregistrar\EPP\eppHost;
 
+function getSettingsFileByTld($domainName) {
+	// Returns the settings_*.ini filename based on the TLD
+	if((substr($domainName, -strlen('.nl')) === '.nl')) {
+		return dirname(__DIR__, 1) . '/settings_sidn.ini'; //.nl is only API-able via the SIDN provider
+	}
+	
+	return dirname(__DIR__, 1) . '/settings_metaregistrar.ini'; // all other extensions are handled via Metaregistar
+}
+
 function loadContext($eppConnection, $domainName, $targetOrganization) {
 	
 	// Determine which context_file to use    

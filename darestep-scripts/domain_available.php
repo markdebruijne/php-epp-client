@@ -1,5 +1,6 @@
 <?php
 require('autoloader.php');
+require_once('context_loader.php');
 
 use Metaregistrar\EPP\eppConnection;
 use Metaregistrar\EPP\eppException;
@@ -25,7 +26,7 @@ for ($i = 1; $i < $argc; $i++) {
 echo "Checking " . count($domains) . " domain names\n";
 try {
     // Please enter the location of the file with these settings in the string location here under
-    if ($conn = eppConnection::create("settings.ini", true)) {
+    if ($conn = eppConnection::create(getSettingsFileByTld($domainname), true)) {
         // Connect and login to the EPP server
 
         if ($conn->login()) {

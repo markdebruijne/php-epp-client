@@ -41,7 +41,7 @@ $targetOrganization = $argv[2];
 echo "Registering $domainname\n";
 try {
 // Please enter your own settings file here under before using this example
-    if ($conn = eppConnection::create('settings.ini', true)) {
+    if ($conn = eppConnection::create(getSettingsFileByTld($domainname), true)) {
         
         // Determine which context_file to use: contains registrant, handles and name server
         $contextDictionary = loadContext($conn, $domainname, $targetOrganization);
