@@ -1,5 +1,6 @@
 <?php
 require('autoloader.php');
+require_once('context_loader.php');
 require_once('outputert.php');
 
 use Metaregistrar\EPP\eppConnection;
@@ -9,18 +10,21 @@ use Metaregistrar\EPP\eppSecdns;
 use Metaregistrar\EPP\eppDnssecUpdateDomainRequest;
 use Metaregistrar\EPP\eppException;
 
-if ($argc <= 1) {
+if ($argc <= 1 || $argc > 2) {
     echo "Usage: signdomaindomain.php <domainname>\n";
-    echo "Please enter the domain name to be modified\n\n";
+	echo "<domainname>: Please enter the domain name to be DNSSEC'ed".PHP_EOL;
+	// echo "<targetOrganization>: For example: enecogroup_oxxio".PHP_EOL;
     die();
 }
 
 $domainname = $argv[1];
 echo "Domain: ".$domainname.PHP_EOL;
+// $targetOrganization = $argv[2];
+// echo "Target organization: ".$targetOrganization.PHP_EOL;
 
 try {
     // Please enter your own settings file here under before using this example
-    if ($conn = eppConnection::create("settings.ini", true)) {
+	if ($conn = eppConnection::create(getSettingsFileByTld($domainname), true)) {
         $conn->enableDnssec();
         if ($conn->login()) {
             $add = new eppDomain($domainname);
