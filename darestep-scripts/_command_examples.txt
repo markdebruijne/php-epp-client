@@ -1,23 +1,73 @@
-Laatste versie op DS-WEB-SH1 > D:\EPP_Mark
+Laatste versie op MAIL1 > D:\EPP
 ==========================================
 
-Minimaal script file + script specifieke arguments aan het eind
-----
-php darestep-scripts\domain_dnssec.php energie-gadget.com
+--------
+ALGEMEEN
+--------
+- Draaien vanuit PowerShell console of Windows command prompt
+- Draaien vanuit directory D:\EPP
+- Algemene syntax is 
+    php <php arguments> <scriptpath> <script arguments>
+- Errors wel output-ten kan via -d display_errors=on als php argument toe te voegen
+    php -d display_errors=on <scriptpath> <script arguments>
+- Sommige scripts kunnen meerdere script arguments aan
 
+---------------
+Registrar / API
+---------------
+- Vooralsnog wordt op basis van de TLD bepaald welke registrar (EPP API) gebruikt moet worden
+    - .nl => SIDN
+    - overigen => Metaregistrar
+- Sommige scripts zijn voorzien van de mogelijkheid een zogenaamde "context" mee te geven, waarin een aantal
+    settings opgenomen zijn, zoals handles en name servers, bedoeld voor diverse bedrijfsonderdelen. Enkele voorbeelden
+        EnecoGroep Eneco (SIDN)
+        EnecoGroup Oxxio (SIDN)
+        EnecoGroup Eneco (Metaregistrar)
+    Deze vind je in .ini bestanden in \darestep-scripts folder. De _sidn of _metaregistrar om te kunnen varieren per registrar. 
+    Deze context wordt als script argument meegegeven, bijvoorbeeld
+        php -d display_errors=on darestep-scripts\domain_register.php enecogasspeicher.nl enecogroup_eneco
 
-Maar errors zie je standaard niet, dus dit is aan te bevelen
-----
-php -d display_errors=on darestep-scripts\domain_dnssec.php 123.nl
-php -d display_errors=on darestep-scripts\domain_info.php oxxio.nl
+-------
+Scripts
+-------
 
+Domain informatie tonen
+-----------------------
+    php -d display_errors=on darestep-scripts\domain_info.php oxxio.nl
 
-Sommige scripts ondersteunen meerdere arguments
-----
-php -d display_errors=on darestep-scripts\domain_available.php oxxi.nl oxxioo.nl
+Domain informatie Exporteren
+----------------------------
+        (output komt in /output/<domain>.csv alsmede aangevuld in /output/_export.csv)
+    php -d display_errors=on darestep-scripts\domain_info.php oxxio.nl export
 
+Domain beschikbaarheid controleren
+----------------------------------
+        single domain
+    php -d display_errors=on darestep-scripts\domain_available.php oxxio.nl
+        multiple domains (TLD gelijk houden vermoedelijk)
+    php -d display_errors=on darestep-scripts\domain_available.php oxxio.nl eneco.nl
 
-Exporteren van domein naar /output folder in zowel totaal bestand als individueel
-----
-php -d display_errors=on darestep-scripts\domain_info.php oxxio.nl
-php -d display_errors=on darestep-scripts\domain_info.php oxxio.nl export
+Domain registreren
+------------------
+        context meegegeven. Script controleert expliciet eerst op beschikbaarheid.
+    php -d adarestep-scripts\domain_register.php enecogasspeicher.nl enecogroup_eneco
+
+DNSSEC toevoegen
+----------------
+        - werkt vooralsnog enkel voor domeinen zonder DNSSEC
+        - DNSSEC tekstbestand van Capgemini plaatsen in /DNSSEC
+        - Indien gelukt, wordt .txt verplaatst naar subfolder
+    php -d display_errors=on darestep-scripts\domain_dnssec.php <domain>
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Verhuizen domain
+----------------
+        - werkt enkel voor Metaregistrar !
+        - nieuwe nameservers zitten nog hardcoded in het script
+    php -d display_errors=on darestep-scripts\domain_transfer.php <domain> <authcode>
+
+Bijwerken NS + Handles (na verhuizing)
+        - werkt enkel voor Metaregistrar !
+        - nieuwe nameservers én handles zitten nog hardcoded in het script
+    php -d display_errors=on darestep-scripts\domain_transfer.php <domain>
