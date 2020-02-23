@@ -6,82 +6,72 @@ require_once('outputert.php');
 use Metaregistrar\EPP\eppConnection;
 use Metaregistrar\EPP\eppDomain;
 use Metaregistrar\EPP\eppInfoDomainRequest;
+use Metaregistrar\EPP\eppInfoDomainResponse;
 use Metaregistrar\EPP\eppSecdns;
 use Metaregistrar\EPP\eppDnssecUpdateDomainRequest;
 use Metaregistrar\EPP\eppException;
 
-if ($argc <= 1 || $argc > 2) {
-    echo "Usage: signdomaindomain.php <domainname>\n";
+if ($argc <= 1 || $argc > 3) {
+    echo "Usage: signdomaindomain.php <domainname> [--remove]".PHP_EOL;
 	echo "<domainname>: Please enter the domain name to be DNSSEC'ed".PHP_EOL;
+	echo "--remove: (optional) removes the DNSSEC configuration for the given domain.".PHP_EOL;
 	// echo "<targetOrganization>: For example: enecogroup_oxxio".PHP_EOL;
     die();
 }
 
 $domainname = $argv[1];
 echo "Domain: ".$domainname.PHP_EOL;
+$removeDnssec = false;
+if($argc == 3 && $argv[2] && strcasecmp($argv[2], "--remove") == 0) {
+	$removeDnssec = true;
+	echo "DNSSEC: will be REMOVED.".$domainname.PHP_EOL;
+}
+
 // $targetOrganization = $argv[2];
 // echo "Target organization: ".$targetOrganization.PHP_EOL;
 
 try {
+	//  2 functionalities that are implemented
+	//  - Add DNSSEC to the domain in case it isn't signed yet.
+	//  - Reconfigure the domain so it only contains the DNSSEC data from the file afterwards
+	//    > yearly keys will expired and need to be refreshed
+
     // Please enter your own settings file here under before using this example
 	if ($conn = eppConnection::create(getSettingsFileByTld($domainname), true)) {
         $conn->enableDnssec();
         if ($conn->login()) {
-            $add = new eppDomain($domainname);
+
+            $eppDomain = new eppDomain($domainname);
 
 			// First retrieve info of the domain
-			$info = new eppInfoDomainRequest($add);
-			if ($infoResponse = $conn->request($info)) {
+			$eppDomainInfo = new eppInfoDomainRequest($eppDomain);
+			if ($eppDomainInfoResponse = $conn->request($eppDomainInfo)) {
 
-				if($infoResponse->hasDnsSec()) {
-					$keyCounter = $infoResponse->keyCount();
-					echo " DNSSEC keys already configured. Key count: ".$keyCounter.PHP_EOL;
-					echo "  Doing nothing. Exit.".PHP_EOL;
-					die();
-				} else {
-					echo " DNSSEC not (yet) configured".PHP_EOL;
-				}
-
-				$dnssecValues = import($conn, $domainname);
-
-				if(empty($dnssecValues)) {
-					echo " DNSFILE not found in /dnssec folder";
-				}
-
-				$dnssecFlags	= $dnssecValues->flags;
-				$dnssecAlg		= $dnssecValues->algorithm;
-				$dnssecPubKey	= $dnssecValues->publicKey;
-				$dnssecKeyId	= $dnssecValues->keytag;
-
-				$sec = new eppSecdns();
-				$sec->setKey($dnssecFlags, $dnssecAlg, $dnssecPubKey);
-				$add->addSecdns($sec);
-
-				// var_dump($sec);
-
-				$update = new eppDnssecUpdateDomainRequest($domainname, $add);
-				if ($response = $conn->request($update)) {
-				    /* @var $response Metaregistrar\EPP\eppUpdateDomainResponse */
-				    echo " DNSSEC added with KeyId: ".$dnssecKeyId.PHP_EOL;
-
-					// Move DNSSEC file into archive folder
-					moveDnsSecFilename($domainname);
-					echo "  (imported file moved to archive)".PHP_EOL;
-
-					if($refreshedInfoResponse = $conn->request($info)) {
-
-						if($refreshedInfoResponse->hasDnsSec()) {
-							$dnssecData = $refreshedInfoResponse->getKeys();
-
-							echo " DNSSEC keys: " . count($dnssecData) .PHP_EOL;
-
-							foreach ($dnssecData as $secdns) {
-							    // var_dump($secdns);
-								echo "  >  keyid:" . $secdns->getKeytag() . " => " . substr($secdns->getPubkey(), 0, 25) . " [..] " . PHP_EOL;
-							}
-						}
+				if($eppDomainInfoResponse->hasDnsSec()) {
+					$keyCounter = $eppDomainInfoResponse->keyCount();
+					echo " DNSSEC keys (already) configured. Key count: ".$keyCounter.PHP_EOL;
+					
+					if($removeDnssec) {
+						$removeDnsSecFromDomainResponse = removeDnsSecFromDomain($conn, $eppDomainInfoResponse);
+						echo "  DNSSEC removed. Exit.".PHP_EOL;
+					} else {
+						echo "  Doing nothing. Exit.".PHP_EOL;
 					}
+					die(); //exit
+
+				} else {
+					echo " DNSSEC not (yet / anymore) configured.".PHP_EOL;
 				}
+
+				// As prerequisite we need a file with the DNSSEC data to execute one of the following
+				$dnssecDataFromFile = importFromFile($domainname);
+
+				if(empty($dnssecDataFromFile)) {
+					echo " DNSFILE not found in /dnssec folder";
+					die();
+				}
+
+				addDnsSecToDomain($conn, $dnssecDataFromFile);
 			}
             $conn->logout();
         }
@@ -119,10 +109,9 @@ function moveDnsSecFilename($domainname) {
 }
 
 /**
- * @param $conn eppConnection
  * @param $domainname string
  */
-function import($conn, $domainname) {
+function importFromFile($domainname) {
 	$dnsFilename = getDnsSecFilename($domainname);
 
 	if(!file_exists(__DIR__ . $dnsFilename)) {
@@ -153,4 +142,101 @@ function import($conn, $domainname) {
 	}
 
 	return $object;
+}
+
+function addDnsSecToDomain($conn, $dnssecDataFromFile) {
+
+	$domainname = $dnssecDataFromFile->domainname;
+	$eppDomain = new eppDomain($domainname);
+
+	$dnssecFlags	= $dnssecDataFromFile->flags;
+	$dnssecAlg		= $dnssecDataFromFile->algorithm;
+	$dnssecPubKey	= $dnssecDataFromFile->publicKey;
+	$dnssecKeyId	= $dnssecDataFromFile->keytag;
+
+	$sec = new eppSecdns();
+	$sec->setKey($dnssecFlags, $dnssecAlg, $dnssecPubKey);
+	$eppDomain->addSecdns($sec);
+
+	// var_dump($sec);
+
+	$eppDomainUpdateRequest = new eppDnssecUpdateDomainRequest($domainname, $eppDomain);
+	if ($eppDomainUpdateResponse = $conn->request($eppDomainUpdateRequest)) { // getting result implies that update succeeded.
+	    /* @var $response Metaregistrar\EPP\eppUpdateDomainResponse */
+	    echo " DNSSEC added with KeyId: ".$dnssecKeyId.PHP_EOL;
+
+		// Move DNSSEC file into archive folder
+		moveDnsSecFilename($domainname);
+		echo "  (imported file moved to archive)".PHP_EOL;
+
+		if($refreshedEppDomainInfoResponse = $conn->request($eppDomainInfo)) {
+
+			if($refreshedEppDomainInfoResponse->hasDnsSec()) {
+				$dnssecData = $refreshedEppDomainInfoResponse->getKeydata();
+
+				echo " DNSSEC keys: " . count($dnssecData) .PHP_EOL;
+
+				foreach ($dnssecData as $secdns) {
+				    // var_dump($secdns);
+					echo "  >  keyid:" . $secdns->getKeytag() . " => " . substr($secdns->getPubkey(), 0, 25) . " [..] " . PHP_EOL;
+				}
+			}
+		}
+	}
+}
+
+function removeDnsSecFromDomain($conn, $eppDomainInfoResponse) {
+
+	if($eppDomainInfoResponse) {
+		// This is messy. We have an infoResponse of a particular domain(object)
+		// We need to pass that into the eppDnssecUpdateDomainRequest constructor, together 
+		//  with an eppDomain object containing the keys to remove
+		$eppDomain = $eppDomainInfoResponse->getDomain();
+
+		// the eppDomainInfoResponse already has been checked for Dnssec
+		// so we can retrieve the key data directly. 
+		$dnssecKeyData = $eppDomainInfoResponse->getKeydata();
+		// reconstruct the dnssec keys to the eppDomain-object
+
+		if (is_array($dnssecKeyData) && (count($dnssecKeyData)>0)) {
+			
+			foreach ($dnssecKeyData as $dnssecItem) {
+				/* @var eppSecdns $dnssec */
+				$eppDomain->addSecdns($dnssecItem);
+			}
+
+			// The eppDnssecUpdateDomainRequest can be called with either Add/Remove/Update parameter filled
+			$eppDomainUpdateWithDnssecModificationsRequest = new eppDnssecUpdateDomainRequest($eppDomain, null, $eppDomain, null);
+
+			// IMPORTANT HACK
+			// This EPP implementation uses an "Update Domain Request" which can optionally include DNSSEC changes
+			//  But the implementation is that once you send in 'remove dnssec' instructions, that also handles/NS removal will
+			//  take place. It expects that you remove AND (re)add the new handles/NS you want. But as we only want to
+			//  recycle the DNSSEC keys, we clear out these domain-level-instructions.
+			$domainLevelRemovalInstructions 	= $eppDomainUpdateWithDnssecModificationsRequest->getElementsByTagName('domain:rem');
+			if(count($domainLevelRemovalInstructions) > 0) {
+				$domainLevelRemovalInstruction = $domainLevelRemovalInstructions->item(0);
+				$domainLevelRemovalInstruction	->parentNode->removeChild($domainLevelRemovalInstruction);
+			}
+
+			$domainLevelChangeInstructions = $eppDomainUpdateWithDnssecModificationsRequest->getElementsByTagName('domain:chg');
+			if(count($domainLevelChangeInstructions) > 0) {
+				$domainLevelChangeInstruction = $domainLevelChangeInstructions->item(0);
+				$domainLevelChangeInstruction ->parentNode->removeChild($domainLevelChangeInstruction);
+			}
+
+			$domainLevelAddInstructions = $eppDomainUpdateWithDnssecModificationsRequest->getElementsByTagName('domain:add');
+			if(count($domainLevelAddInstructions) > 0) {
+				$domainLevelAddInstruction = $domainLevelAddInstructions->item(0);
+				$domainLevelAddInstruction ->parentNode->removeChild($domainLevelAddInstruction);
+			}
+
+			if ($eppDomainUpdateWithDnssecModificationsResponse = $conn->request($eppDomainUpdateWithDnssecModificationsRequest)) {	
+				return $eppDomainUpdateWithDnssecModificationsResponse;
+			}
+		} else {
+			echo "mismatch".PHP_EOL;
+			die();
+		}
+	}	
 }
