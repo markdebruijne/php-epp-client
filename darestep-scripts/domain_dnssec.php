@@ -62,7 +62,7 @@ try {
 				$update = new eppDnssecUpdateDomainRequest($domainname, $add);
 				if ($response = $conn->request($update)) {
 				    /* @var $response Metaregistrar\EPP\eppUpdateDomainResponse */
-				    echo " DNSSEC added".PHP_EOL;
+				    echo " DNSSEC added with KeyId: ".$dnssecKeyId.PHP_EOL;
 
 					// Move DNSSEC file into archive folder
 					moveDnsSecFilename($domainname);
@@ -77,7 +77,7 @@ try {
 
 							foreach ($dnssecData as $secdns) {
 							    // var_dump($secdns);
-								echo "  >  " . substr($secdns->getPubkey(), 0, 25) . " [..] " . PHP_EOL;
+								echo "  >  keyid:" . $secdns->getKeytag() . " => " . substr($secdns->getPubkey(), 0, 25) . " [..] " . PHP_EOL;
 							}
 						}
 					}
