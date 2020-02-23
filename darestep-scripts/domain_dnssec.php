@@ -34,13 +34,13 @@ try {
 			if ($infoResponse = $conn->request($info)) {
 
 				if($infoResponse->hasDnsSec()) {
-					echo " DNSSEC keys already configured. Doing nothing. Exit.".PHP_EOL;
+					$keyCounter = $infoResponse->keyCount();
+					echo " DNSSEC keys already configured. Key count: ".$keyCounter.PHP_EOL;
+					echo "  Doing nothing. Exit.".PHP_EOL;
 					die();
 				} else {
 					echo " DNSSEC not (yet) configured".PHP_EOL;
 				}
-				
-				// die();
 
 				$dnssecValues = import($conn, $domainname);
 
