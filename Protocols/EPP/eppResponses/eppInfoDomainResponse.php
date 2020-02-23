@@ -274,4 +274,30 @@ class eppInfoDomainResponse extends eppInfoResponse {
         return null;
     }
 
+    private function validateDnsSecEnabled() {
+        // Check if dnssec is enabled on this interface
+        if (!$this->findNamespace('secDNS')) {
+            echo " DNSSEC not available in interface and/or response (although expected).".PHP_EOL;
+            die();
+        }
+    }
+
+    public function hasDnsSec() {
+        // Check if dnssec is enabled on this interface
+        $this->validateDnsSecEnabled();
+
+        // Return only an indicator about the amount of keys currently being configured
+        $dnssecResult = $this->getKeydata();
+        return !empty($dnssecResult);
+    }
+        
+    public function keyCount() {
+        // Check if dnssec is enabled on this interface
+        $this->validateDnsSecEnabled();
+
+        // Return only an indicator about the amount of keys currently being configured
+        $dnssecResult = $this->getKeydata();
+        return count($dnssecResult);
+    }
+
 }
