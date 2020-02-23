@@ -17,11 +17,28 @@ class eppDnssecInfoDomainResponse extends eppInfoDomainResponse
      */
     public function getKeydata() {
         // Check if dnssec is enabled on this interface
-        $this->validateDnsSecEnabled();
-
-        $dnssecResult = $this->getDnsSecKeysFromResponse();
-
-        return $this->constructKeysDataFromResponse($dnssecResult);
+        if ($this->findNamespace('secDNS')) {
+            $xpath = $this->xPath();
+            $result = $xpath->query('/epp:epp/epp:response/epp:extension/secDNS:infData/*');
+            $keys = array();
+            if (count($result) > 0) {
+                foreach ($result as $keydata) {
+                    /* @var $keydata \DOMElement */
+                    // Check if the keyTag element is present. If not, use getKeys()
+                    $test = $keydata->getElementsByTagName('keyTag');
+                    if ($test->length > 0) {
+                        $secdns = new eppSecdns();
+                        $secdns->setKeytag($keydata->getElementsByTagName('keyTag')->item(0)->nodeValue);
+                        $secdns->setAlgorithm($keydata->getElementsByTagName('alg')->item(0)->nodeValue);
+                        $secdns->setDigestType($keydata->getElementsByTagName('digestType')->item(0)->nodeValue);
+                        $secdns->setDigest($keydata->getElementsByTagName('digest')->item(0)->nodeValue);
+                        $keys[] = $secdns;
+                    }
+                }
+            }
+            return $keys;
+        }
+        return null;
     }
 
     /**
@@ -39,86 +56,27 @@ class eppDnssecInfoDomainResponse extends eppInfoDomainResponse
      */
     public function getKeys() {
         // Check if dnssec is enabled on this interface
-        $this->validateDnsSecEnabled();
-
-        $dnssecResult = $this->getDnsSecKeysFromResponse();
-            
-        return $this->constructKeysFromResponse($dnssecResult);
-    }
-
-	public function hasDnsSec() {
-        // Check if dnssec is enabled on this interface
-        $this->validateDnsSecEnabled();
-
-        // Return only an indicator about the amount of keys currently being configured
-        $dnssecResult = $this->getDnsSecKeysFromResponse();
-        return $dnssecResult && $dnssecResult->length > 0;
-    }
-    
-    public function keyCount() {
-        // Check if dnssec is enabled on this interface
-        $this->validateDnsSecEnabled();
-
-        // Return only an indicator about the amount of keys currently being configured
-        $dnssecResult = $this->getDnsSecKeysFromResponse();
-
-		return $dnssecResult->length;
-    }
-
-    private function validateDnsSecEnabled() {
-        // Check if dnssec is enabled on this interface
-        if (!$this->findNamespace('secDNS')) {
-            echo " DNSSEC not available in interface and/or response (although expected).".PHP_EOL;
-            die();
-        }
-    }
-
-    private function getDnsSecKeysFromResponse() {
-        // expects validateDnsSecEnabled() to be called first.
-        $xpath = $this->xPath();
-        $result = $xpath->query('/epp:epp/epp:response/epp:extension/secDNS:infData/*');
-        return $result;
-    }
-
-    private function constructKeysFromResponse($xpathResult) {
-        // Input is the XML from the EPP response, queried by xpath
-
-        $keys = array();
-        if (count($xpathResult) > 0) {
-            foreach ($xpathResult as $keydata) {
-                /* @var $keydata \DOMElement */
-                // Check if the pubKey element is present. If not, use getKeydata();
-                $test = $keydata->getElementsByTagName('pubKey');
-                if ($test->length > 0) {
-                    $secdns = new eppSecdns();
-                    $flags = $keydata->getElementsByTagName('flags')->item(0)->nodeValue;
-                    $algorithm = $keydata->getElementsByTagName('alg')->item(0)->nodeValue;
-                    $pubkey = $keydata->getElementsByTagName('pubKey')->item(0)->nodeValue;
-                    $secdns->setKey($flags, $algorithm, $pubkey);
-                    $keys[] = $secdns;
+        if ($this->findNamespace('secDNS')) {
+            $xpath = $this->xPath();
+            $result = $xpath->query('/epp:epp/epp:response/epp:extension/secDNS:infData/*');
+            $keys = array();
+            if (count($result) > 0) {
+                foreach ($result as $keydata) {
+                    /* @var $keydata \DOMElement */
+                    // Check if the pubKey element is present. If not, use getKeydata();
+                    $test = $keydata->getElementsByTagName('pubKey');
+                    if ($test->length > 0) {
+                        $secdns = new eppSecdns();
+                        $flags = $keydata->getElementsByTagName('flags')->item(0)->nodeValue;
+                        $algorithm = $keydata->getElementsByTagName('alg')->item(0)->nodeValue;
+                        $pubkey = $keydata->getElementsByTagName('pubKey')->item(0)->nodeValue;
+                        $secdns->setKey($flags, $algorithm, $pubkey);
+                        $keys[] = $secdns;
+                    }
                 }
             }
+            return $keys;
         }
-        return $keys;
-    }
-
-    private function constructKeysDataFromResponse($xpathResult) {
-        $keys = array();
-        if (count($xpathResult) > 0) {
-            foreach ($xpathResult as $keydata) {
-                /* @var $keydata \DOMElement */
-                // Check if the keyTag element is present. If not, use getKeys()
-                $test = $keydata->getElementsByTagName('keyTag');
-                if ($test->length > 0) {
-                    $secdns = new eppSecdns();
-                    $secdns->setKeytag($keydata->getElementsByTagName('keyTag')->item(0)->nodeValue);
-                    $secdns->setAlgorithm($keydata->getElementsByTagName('alg')->item(0)->nodeValue);
-                    $secdns->setDigestType($keydata->getElementsByTagName('digestType')->item(0)->nodeValue);
-                    $secdns->setDigest($keydata->getElementsByTagName('digest')->item(0)->nodeValue);
-                    $keys[] = $secdns;
-                }
-            }
-        }
-        return $keys;
+        return null;
     }
 }
